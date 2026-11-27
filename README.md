@@ -47,7 +47,7 @@ curl -X POST http://localhost:4000/key/generate \
   -H "Content-Type: application/json" \
   -d '{"models":["<your-model-alias>"],"rpm_limit":10,"tpm_limit":20000,"max_budget":0,"key_alias":"portfolio-site"}'
 ```
-📸 Screenshot: the key creation (redact the key) for your write-up.
+Screenshot: the key creation (redact the key) for your write-up.
 
 ## Step 4: Expose LiteLLM through your tunnel
 In your cloudflared config, add a public hostname (e.g. `llm.<your-domain>`) → `http://localhost:4000`.
