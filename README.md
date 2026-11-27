@@ -1,89 +1,66 @@
-# Bradley McDonald — Portfolio Site
+# BradleymcdonaldLabs.com
 
-Static site + Cloudflare Pages Functions. No build step, no framework, no trackers.
+Source for my portfolio site, [bradleymcdonaldlabs.com](https://bradleymcdonaldlabs.com).
+
+I'm Bradley McDonald, an entry-level IT and cybersecurity professional in Greater Manchester, UK. I hold CompTIA Security+ (SY0-701) and Level 3 qualifications in Cybersecurity and Networking, and I'm looking for IT Support, Help Desk or SOC L1 roles.
+
+The site is static HTML, CSS and JavaScript with no framework, no build step and no trackers. Its main feature is **BradBot**, a chat assistant answered by a language model running on my own hardware at home.
+
+## The home-lab project behind BradBot
+
+BradBot is the front end of a self-hosted LLM project I built and secured in six phases:
+
+| Phase | What I built | Status |
+| --- | --- | --- |
+| 1. Local LLM | vLLM serving Mistral-7B Instruct (FP8) on an RTX 5070 under WSL2 / Ubuntu | Complete |
+| 2. Gateway and access control | LiteLLM proxy backed by PostgreSQL, with a master key, scoped demo keys and rate limiting | Complete |
+| 3. Perimeter | Cloudflare Tunnel with TLS and no inbound ports, plus lab network segmentation | Complete |
+| 4. Red-teaming the guardrails | Prompt-injection and abuse testing from a separate Kali Linux machine | In progress |
+| 5. Detection and monitoring | Wazuh collecting gateway and host logs, with alerts on suspicious activity | Complete |
+| 6. This website | Cloudflare Pages, with a server-side function between visitors and the model | Live |
+
+### How a message travels
 
 ```
-portfolio/
-├── index.html            # page content (edit text here)
-├── styles.css            # theme / layout
-├── script.js             # typing effect, phases, chat logic (edit PHASES at the top)
-├── _headers              # security headers (CSP, HSTS, etc.)
-├── cv.pdf                # ← add your CV here
+Browser ──► /api/chat (Cloudflare Pages Function, adds the API key server-side)
+        ──► Cloudflare Tunnel (TLS, no open ports on my router)
+        ──► LiteLLM gateway (scoped key, rate limit) ──► vLLM (Mistral-7B)
+```
+
+### Security design
+
+- **No secrets in the browser.** The API key lives only in Cloudflare's encrypted environment variables and is added by the server-side function.
+- **Least privilege.** The website uses its own scoped LiteLLM key, limited to one model and rate-limited, separate from the master key.
+- **Origin check and input limits.** The function only accepts requests from this site, caps message length and history, and returns generic errors that never leak upstream details.
+- **Hardened headers.** A strict Content-Security-Policy, HSTS, `X-Frame-Options: DENY` and a locked-down Permissions-Policy (see [`_headers`](_headers)).
+- **Graceful fallback.** When my home lab is offline, the site shows an offline badge and BradBot answers from pre-written replies.
+- **Monitored.** Gateway and host logs feed into Wazuh for alerting.
+
+## Repository layout
+
+```
+├── index.html          page content
+├── styles.css          theme and layout
+├── script.js           build-log phases, typing effect and chat logic
+├── _headers            security headers for Cloudflare Pages
 └── functions/api/
-    ├── chat.js           # POST /api/chat → LiteLLM (holds the secret key)
-    └── health.js         # GET  /api/health → online/offline badge
+    ├── chat.js         POST /api/chat   → forwards chat to the LiteLLM gateway
+    └── health.js       GET  /api/health → powers the online/offline badge
 ```
 
-## How the chatbot connects
+## Running it locally
 
-```
-Browser ──► /api/chat (Cloudflare Pages Function, adds secret key)
-        ──► https://llm.<your-domain> (cloudflared tunnel)
-        ──► LiteLLM :4000 (scoped key + rate limit) ──► vLLM :8000
-```
-The browser never sees `LITELLM_KEY`. That's the main security point to explain to recruiters.
-
----
-
-## Step 1: Personalise the content
-1. `index.html`: replace the placeholders:
-   - `you@example.com`, LinkedIn URL, GitHub URL
-   - The two `[Level 3 qualification]` cards
-2. `script.js`: check the `PHASES` statuses (`done` / `progress` / `live`) match where you are.
-3. Drop your CV in the folder as `cv.pdf` (or remove that button).
-
-## Step 2: Preview locally
 ```bash
-cd portfolio
 npx wrangler pages dev .
 ```
-Open http://localhost:8788. The chat will show **offline · demo mode** until Step 4 is done. That's expected.
 
-## Step 3: Create a dedicated demo key in LiteLLM
-Use a **separate** key just for the website (not your master key):
-```bash
-curl -X POST http://localhost:4000/key/generate \
-  -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"models":["<your-model-alias>"],"rpm_limit":10,"tpm_limit":20000,"max_budget":0,"key_alias":"portfolio-site"}'
-```
-Screenshot: the key creation (redact the key) for your write-up.
+Then open http://localhost:8788. Without the environment variables below, BradBot runs in offline demo mode.
 
-## Step 4: Expose LiteLLM through your tunnel
-In your cloudflared config, add a public hostname (e.g. `llm.<your-domain>`) → `http://localhost:4000`.
-**Recommended:** protect that hostname with **Cloudflare Access → Service Auth**, create a Service Token,
-and put its ID/secret in the env vars below. Then only your Pages Function can reach LiteLLM.
+The chat function reads `LITELLM_URL`, `LITELLM_KEY`, `MODEL_NAME` and `ALLOWED_ORIGIN`, plus optional `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` when the tunnel sits behind Cloudflare Access. These are set as Cloudflare Pages environment variables and are never committed.
 
-## Step 5: Deploy to Cloudflare Pages
-1. Push the `portfolio/` folder to a GitHub repo.
-2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → pick the repo.
-3. Build command: *(leave empty)* · Output directory: `/`
-4. **Settings → Variables and Secrets** (Production):
+## Contact
 
-| Name | Value | Type |
-|---|---|---|
-| `LITELLM_URL` | `https://llm.<your-domain>` | Text |
-| `LITELLM_KEY` | key from Step 3 | **Secret** |
-| `MODEL_NAME` | your LiteLLM model alias | Text |
-| `ALLOWED_ORIGIN` | `https://<your-domain>` | Text |
-| `CF_ACCESS_CLIENT_ID` | service token ID (if using Access) | Text |
-| `CF_ACCESS_CLIENT_SECRET` | service token secret | **Secret** |
-
-5. Redeploy → **Custom domains** → add your domain.
-
-## Step 6: Extra hardening (worth adding)
-- **WAF rate-limit rule** on `/api/chat` (e.g. 20 requests/min per IP). Security → WAF → Rate limiting rules.
-- **Wazuh**: alert on LiteLLM 401/429 spikes from the `portfolio-site` key.
-- Run your Phase 4 prompt-injection tests against the **live** URL and document the results.
-
-## Step 7: Verify
-- https://securityheaders.com → aim for an **A**
-- DevTools → Sources: confirm no key or tunnel hostname appears anywhere
-- Turn your PC off → badge should switch to *offline · demo mode*
-
-## Troubleshooting
-- **"Conversation roles must alternate"** or a system-role error from Mistral: your vLLM chat template
-  may not accept a `system` message. Fix by enforcing the system prompt in LiteLLM instead, or by
-  prepending `SYSTEM_PROMPT` to the first user message in `chat.js`.
-- **403 from /api/chat**: `ALLOWED_ORIGIN` must match exactly (https, no trailing slash).
-- **Always offline**: check `curl https://llm.<your-domain>/health/liveliness` works with the Access headers.
+- Email: [11mcdonaldbradley@gmail.com](mailto:11mcdonaldbradley@gmail.com)
+- LinkedIn: [bradley-mcdonald](https://www.linkedin.com/in/bradley-mcdonald-334509354/)
+- GitHub: [Brad-McD](https://github.com/Brad-McD)
+- TryHackMe: [brad.mc](https://tryhackme.com/p/brad.mc)
