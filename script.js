@@ -8,8 +8,8 @@ const PHASES = [
   { title: "a local llm", status: "done", text: "vllm serving mistral-7b instruct (fp8) on an rtx 5070 inside wsl2/ubuntu." },
   { title: "gateway & access control", status: "done", text: "litellm proxy backed by postgres: master key, scoped demo keys and rate limiting." },
   { title: "perimeter", status: "done", text: "cloudflare tunnel with tls and no inbound ports, plus lab network segmentation." },
-  { title: "red-team the guardrails", status: "progress", text: "prompt-injection and abuse testing from a separate kali attacker box." },
-  { title: "detection & monitoring", status: "done", text: "wazuh collecting gateway and host logs, with alerts on suspicious activity." },
+  { title: "red-team the guardrails", status: "done", text: "prompt-injection and abuse testing from a separate kali attacker box." },
+  { title: "detection & monitoring", status: "progress", text: "wazuh collecting gateway and host logs, with alerts on suspicious activity." },
   { title: "this website", status: "live", text: "cloudflare pages, with a server-side function standing between you and the model." },
 ];
 const BADGE_TEXT = { done: "complete", progress: "in progress", live: "live" };

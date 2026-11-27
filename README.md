@@ -15,8 +15,8 @@ BradBot is the front end of a self-hosted LLM project I built and secured in six
 | 1. Local LLM | vLLM serving Mistral-7B Instruct (FP8) on an RTX 5070 under WSL2 / Ubuntu | Complete |
 | 2. Gateway and access control | LiteLLM proxy backed by PostgreSQL, with a master key, scoped demo keys and rate limiting | Complete |
 | 3. Perimeter | Cloudflare Tunnel with TLS and no inbound ports, plus lab network segmentation | Complete |
-| 4. Red-teaming the guardrails | Prompt-injection and abuse testing from a separate Kali Linux machine | In progress |
-| 5. Detection and monitoring | Wazuh collecting gateway and host logs, with alerts on suspicious activity | Complete |
+| 4. Red-teaming the guardrails | Prompt-injection and abuse testing from a separate Kali Linux machine | Complete |
+| 5. Detection and monitoring | Wazuh collecting gateway and host logs, with alerts on suspicious activity | Ongoing |
 | 6. This website | Cloudflare Pages, with a server-side function between visitors and the model | Live |
 
 ### How a message travels
